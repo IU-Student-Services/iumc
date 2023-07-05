@@ -16,6 +16,7 @@ import net.elytrium.limboapi.api.LimboFactory
 import org.slf4j.Logger
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.util.*
 
 @Plugin(
     id = "iumcproxy",
@@ -34,7 +35,7 @@ class IUMCProxy @Inject constructor(
     private val limboFactory = server.pluginManager.getPlugin("limboapi").flatMap(PluginContainer::getInstance).orElseThrow() as LimboFactory
 
     @Subscribe
-    fun onProxyInitialization(event: ProxyInitializeEvent) {
+    private fun onProxyInitialization(event: ProxyInitializeEvent) {
         suspendingPluginContainer.initialize(this)
 
         val config = loadConfig<Config>(

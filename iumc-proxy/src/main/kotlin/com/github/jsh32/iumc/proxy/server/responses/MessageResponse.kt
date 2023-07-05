@@ -10,6 +10,3 @@ class MessageResponse(
     val statusCode: Int,
     val message: String
 )
-
-suspend fun ApplicationCall.messageRespond(statusCode: HttpStatusCode, message: String) =
-    respond(statusCode, MessageResponse(statusCode.value, message))
