@@ -9,6 +9,8 @@ import java.util.*
 
 @ConfigSerializable
 class ServerConfig(
+    @Comment("Public facing IP of the server")
+    val publicIp: String = "example.com",
     @Comment("Server root address")
     val address: String = "",
     @Comment("Port to run server under")

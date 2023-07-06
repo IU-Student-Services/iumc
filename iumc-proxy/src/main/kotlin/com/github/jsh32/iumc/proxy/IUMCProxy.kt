@@ -41,7 +41,7 @@ class IUMCProxy @Inject constructor(
         val config = loadConfig<Config>(
             Paths.get(dataDirectory.toString(), "config.conf").toFile(), true)
 
-        val application = IUMCApplication(config.config.server)
+        val application = IUMCApplication(server, config.config.server)
 
         server.eventManager.register(this, application)
         server.eventManager.register(this, VerificationListener(limboFactory, application))

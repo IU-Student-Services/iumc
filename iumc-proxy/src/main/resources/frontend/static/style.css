@@ -1,3 +1,5 @@
+@import "https://cdn.jsdelivr.net/npm/@picocss/pico@next/css/pico.min.css";
+
 /* Red color for light color scheme (Default) */
 /* Can be forced with data-theme="light" */
 [data-theme=light],
@@ -38,4 +40,27 @@
     --pico-primary-hover-background: #d93526;
     --pico-primary-focus: rgba(241, 121, 97, 0.25);
     --pico-primary-inverse: #fff;
+}
+
+.card {
+    /* Add shadows to create the "card" effect */
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2);
+    transition: 0.3s;
+    border-radius: 10px;
+    background: var(--pico-card-sectioning-background-color);
+    padding: 50px;
+}
+
+.circle {
+    display: inline-block;
+    width: 15px;
+    height: 15px;
+    background-color: rgb(216, 55, 55);
+    border-radius: 50%;
+    box-shadow: 0 0 10px 1px rgba(216, 55, 55, 0.3);
+}
+
+.circle.active {
+    background-color: rgb(64, 233, 72);
+    box-shadow: 0 0 10px 1px rgba(64, 233, 72, 0.3);
 }

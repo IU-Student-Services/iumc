@@ -4,17 +4,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@next/css/pico.min.css">
     <title>IU MC - ${title}</title>
-    <style>
-    <#include "style.css">
-    </style>
+    <link rel="stylesheet" href="/static/style.css"/>
 </head>
-<body data-theme="dark">
-<#nested>
-<footer class="container">
-    <small>Running <a href="https://github.com/JSH32/iumc">IUMC</a> • ${version_hash}</small>
-</footer>
-</body>
+    <body data-theme="dark">
+        <nav class="container">
+            <ul>
+                <li><strong><a href="/" class="contrast">IU + Craft</a></strong></li>
+            </ul>
+            <ul>
+                <li><a href="/">Home</a></li>
+            </ul>
+        </nav>
+        <#nested>
+        <footer class="container">
+            <small>Running <a href="https://github.com/JSH32/iumc">IUMC</a> • ${versionHash}</small>
+        </footer>
+    </body>
 </html>
 </#macro>

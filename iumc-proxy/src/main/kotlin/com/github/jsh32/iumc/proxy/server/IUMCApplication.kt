@@ -1,16 +1,20 @@
 package com.github.jsh32.iumc.proxy.server
 
 import com.github.jsh32.iumc.proxy.server.responses.respondFtl
+import com.github.jsh32.iumc.proxy.server.template.ServerData
 import com.velocitypowered.api.event.Subscribe
 import com.velocitypowered.api.event.connection.DisconnectEvent
+import com.velocitypowered.api.proxy.ProxyServer
 import freemarker.cache.ClassTemplateLoader
 import io.ktor.client.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
+import io.ktor.server.auth.authenticate
 import io.ktor.server.engine.*
 import io.ktor.server.freemarker.*
+import io.ktor.server.http.content.*
 import io.ktor.server.netty.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
@@ -19,7 +23,10 @@ import io.ktor.server.routing.*
 import java.net.URL
 import java.util.*
 
-class IUMCApplication(private val config: ServerConfig) {
+class IUMCApplication(
+    private val server: ProxyServer,
+    private val config: ServerConfig
+) {
     private val sessionManager = OAuthSessionManager<UUID>()
 
     fun getVerificationUrl(playerId: UUID) = sessionManager.createPreStateSession(playerId, config.address)
@@ -66,6 +73,12 @@ class IUMCApplication(private val config: ServerConfig) {
         }
 
         app.routing {
+            staticResources("/static", "frontend/static")
+
+            get("/") {
+                call.respondFtl("index.ftl", mapOf("server" to ServerData(server, config.publicIp)))
+            }
+
             authenticate("iu-login") {
                 get("/auth/login") {}
 
