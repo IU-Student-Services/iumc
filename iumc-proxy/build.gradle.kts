@@ -28,7 +28,7 @@ val generateGitProperties = tasks.register("generateGitProperties") {
     }
 }
 
-tasks.named("processResources") {
+tasks.named("classes") {
     dependsOn(generateGitProperties)
 }
 
