@@ -36,7 +36,7 @@ class OAuthConfig(
         accessTokenUrl = this.accessTokenUrl,
         clientId = this.clientId,
         clientSecret = this.clientSecret,
-        accessTokenRequiresBasicAuth = false,
+        accessTokenRequiresBasicAuth = true,
         requestMethod = HttpMethod.Post, // must POST to token endpoint
         defaultScopes = listOf("openid", "profile"),
         onStateCreated = { call, state ->

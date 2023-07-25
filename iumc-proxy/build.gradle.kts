@@ -53,6 +53,7 @@ dependencies {
     implementation("io.ktor:ktor-client-cio-jvm:2.3.1")
     implementation("io.ktor:ktor-server-core-jvm:2.3.1")
     implementation("io.ktor:ktor-server-freemarker-jvm:2.3.1")
+    implementation("io.ktor:ktor-client-apache:2.3.1")
 
     compileOnly("com.velocitypowered:velocity-api:3.0.1")
     kapt("com.velocitypowered:velocity-api:3.0.1")
@@ -73,4 +74,5 @@ dependencies {
     implementation("io.ktor:ktor-server-status-pages:2.3.1")
     implementation("io.ktor:ktor-server-call-logging:2.3.1")
     implementation("io.ktor:ktor-server-freemarker:2.3.1")
+    implementation("io.ktor:ktor-client-apache5:2.3.1")
 }

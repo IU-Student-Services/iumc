@@ -7,11 +7,11 @@ import com.velocitypowered.api.event.connection.DisconnectEvent
 import com.velocitypowered.api.proxy.ProxyServer
 import freemarker.cache.ClassTemplateLoader
 import io.ktor.client.*
+import io.ktor.client.engine.apache.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.auth.*
-import io.ktor.server.auth.authenticate
 import io.ktor.server.engine.*
 import io.ktor.server.freemarker.*
 import io.ktor.server.http.content.*
@@ -48,15 +48,19 @@ class IUMCApplication(
         app.install(ContentNegotiation) { json() }
         app.install(StatusPages) {
             exception<Throwable> { call, cause ->
-                call.respondFtl("error.ftl", mapOf(
-                    "message" to cause.message!!,
-                ))
+                call.respondFtl(
+                    "error.ftl", mapOf(
+                        "message" to cause.message!!,
+                    )
+                )
             }
 
             status(HttpStatusCode.NotFound) { call, _ ->
-                call.respondFtl("error.ftl", mapOf(
-                    "message" to "404: Page Not Found",
-                ))
+                call.respondFtl(
+                    "error.ftl", mapOf(
+                        "message" to "404: Page Not Found",
+                    )
+                )
             }
         }
 
@@ -64,7 +68,7 @@ class IUMCApplication(
             oauth("iu-login") {
                 providerLookup = { config.oauthConfig.toOAuthServerSettings(sessionManager) }
                 urlProvider = { config.oauthConfig.callback }
-                client = HttpClient()
+                client = HttpClient(Apache)
             }
         }
 
