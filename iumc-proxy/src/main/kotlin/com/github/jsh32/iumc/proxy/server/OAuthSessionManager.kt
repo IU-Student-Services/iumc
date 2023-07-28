@@ -47,8 +47,8 @@ class OAuthSessionManager<T> {
     /**
      * Deletes all sessions (prestate and state) associated with the given value.
      */
-    fun deleteByValue(value: T) {
-        preStateSessions.values.removeIf { it == value }
-        stateSessions.values.removeIf { it == value }
+    fun deleteByFilter(filter: (T) -> Boolean) {
+        preStateSessions.values.removeIf { filter(it) }
+        stateSessions.values.removeIf { filter(it) }
     }
 }

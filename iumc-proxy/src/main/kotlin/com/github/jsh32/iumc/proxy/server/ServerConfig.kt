@@ -1,5 +1,6 @@
 package com.github.jsh32.iumc.proxy.server
 
+import com.velocitypowered.api.proxy.Player
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.*
@@ -13,11 +14,11 @@ class ServerConfig(
     val publicIp: String = "example.com",
     @Comment("Server root address")
     val address: String = "",
-    @Comment("Port to run server under")
+    @Comment("Port to run server on")
     val port: Int = 3000,
-    @Comment("Host to run server under")
+    @Comment("Host to run server on")
     val host: String = "0.0.0.0",
-    @Comment("OAuth server config")
+    @Comment("OAuth server config. IU production URLs are set for defaults")
     val oauthConfig: OAuthConfig = OAuthConfig()
 )
 
@@ -25,12 +26,14 @@ class ServerConfig(
 class OAuthConfig(
     @Comment("Callback URL for OAuth")
     val callback: String = "",
-    private val authorizeUrl: String = "",
-    private val accessTokenUrl: String = "",
+    @Comment("Userinfo route")
+    val userInfo: String = "https://idp.login.iu.edu/idp/profile/oidc/userinfo",
+    private val authorizeUrl: String = "https://idp.login.iu.edu/idp/profile/oidc/authorize",
+    private val accessTokenUrl: String = "https://idp.login.iu.edu/idp/profile/oidc/token",
     private val clientId: String = "",
     private val clientSecret: String = ""
 ) {
-    fun toOAuthServerSettings(sessionManager: OAuthSessionManager<UUID>) = OAuthServerSettings.OAuth2ServerSettings(
+    fun toOAuthServerSettings(sessionManager: OAuthSessionManager<Any>) = OAuthServerSettings.OAuth2ServerSettings(
         name = "IU Login",
         authorizeUrl = this.authorizeUrl,
         accessTokenUrl = this.accessTokenUrl,
