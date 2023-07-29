@@ -1,6 +1,7 @@
 package com.github.jsh32.iumc.proxy.server
 
 import com.github.jsh32.iumc.proxy.models.*
+import com.github.jsh32.iumc.proxy.models.query.QIUAccount
 import com.github.jsh32.iumc.proxy.server.responses.UserInfo
 import com.github.jsh32.iumc.proxy.server.responses.respondFtl
 import com.github.jsh32.iumc.proxy.server.template.ServerData
@@ -24,7 +25,6 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.routing.*
 import java.net.URL
-import java.util.UUID
 
 class IUMCApplication(
     private val server: ProxyServer,
@@ -32,7 +32,8 @@ class IUMCApplication(
 ) {
     private data class State(
         val player: com.velocitypowered.api.proxy.Player,
-        val onCompleted: (player: Player) -> Unit
+        val onCompleted: (player: Player) -> Unit,
+        val onAlreadyLinked: (username: String) -> Unit
     )
 
     private val sessionManager = OAuthSessionManager<State>()
@@ -43,8 +44,12 @@ class IUMCApplication(
         }
     }
 
-    fun startRegistration(player: com.velocitypowered.api.proxy.Player, onCompleted: (player: Player) -> Unit): String {
-        return sessionManager.createPreStateSession(State(player, onCompleted), config.address)
+    fun startRegistration(
+        player: com.velocitypowered.api.proxy.Player,
+        onCompleted: (player: Player) -> Unit,
+        onAlreadyLinked: (username: String) -> Unit
+    ): String {
+        return sessionManager.createPreStateSession(State(player, onCompleted, onAlreadyLinked), config.address)
     }
 
     init {
@@ -112,16 +117,29 @@ class IUMCApplication(
                     }
 
                     val accountInfo = response.body<UserInfo>()
-                    val player = createPlayer(state!!.player.uniqueId, accountInfo)
 
-                    call.respondFtl(
-                        "linked.ftl", mapOf(
-                            "account" to player.account,
-                            "player" to state.player
+                    val foundAccount = QIUAccount().email.eq(accountInfo.sub).findOne()
+                    if (foundAccount != null) {
+                        call.respondFtl(
+                            "already_linked.ftl", mapOf(
+                                "account" to foundAccount,
+                                "username" to foundAccount.player.username,
+                            )
                         )
-                    )
 
-                    state.onCompleted(player)
+                        state!!.onAlreadyLinked(foundAccount.player.username)
+                    } else {
+                        val player = createPlayer(state!!.player, accountInfo)
+
+                        call.respondFtl(
+                            "linked.ftl", mapOf(
+                                "account" to player.account,
+                                "player" to state.player
+                            )
+                        )
+
+                        state.onCompleted(player)
+                    }
                 }
             }
         }
@@ -135,7 +153,7 @@ class IUMCApplication(
      * @return the persisted player object
      */
     @Transactional
-    private fun createPlayer(uuid: UUID, userInfo: UserInfo): Player {
+    private fun createPlayer(player: com.velocitypowered.api.proxy.Player, userInfo: UserInfo): Player {
         val account = IUAccount(
             userInfo.sub,
             userInfo.givenName,
@@ -145,13 +163,14 @@ class IUMCApplication(
 
         account.save()
 
-        val player = Player(
-            uuid,
+        val playerRecord = Player(
+            player.uniqueId,
+            player.username,
             account
         )
 
-        player.save()
+        playerRecord.save()
 
-        return player
+        return playerRecord
     }
 }

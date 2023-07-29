@@ -8,7 +8,7 @@
         </hgroup>
     </header>
     <main class="container">
-        Your IU account is linked with your minecraft account, <b>${player.username}</b>.
-        You can only have one Minecraft account linked at a time. To unlink accounts, run <i>/unlink</i> in-game.
+        <p>Your IU account is linked with your minecraft account, <b>${player.username}</b>.</p>
+        <p>You can only have one Minecraft account linked at a time. To unlink accounts, run <i>/unlink</i> in-game.</p>
     </main>
 </@layout.layout>

@@ -1,6 +1,5 @@
 package com.github.jsh32.iumc.proxy.server
 
-import com.velocitypowered.api.proxy.Player
 import io.ktor.http.*
 import io.ktor.server.auth.*
 import io.ktor.server.plugins.*

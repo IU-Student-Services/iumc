@@ -17,9 +17,11 @@ class Player(
     @Column(unique = true)
     @DbComment("Minecraft player UUID")
     val uuid: UUID,
+    @DbComment("Players cached username")
+    val username: String,
     @Column(unique = true)
-    @OneToOne
     @JoinColumn(name = "account")
+    @OneToOne(cascade = [CascadeType.REMOVE])
     val account: IUAccount
 ) : BaseModel() {
     companion object {

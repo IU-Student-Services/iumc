@@ -22,7 +22,7 @@ class IUAccount(
     val lastName: String,
     val username: String,
 ) : BaseModel() {
-    @OneToOne(mappedBy = "account", cascade = [CascadeType.REMOVE])
+    @OneToOne(mappedBy = "account")
     lateinit var player: Player
 
     companion object {
