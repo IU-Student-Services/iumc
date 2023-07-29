@@ -4,6 +4,7 @@ import com.github.jsh32.iumc.proxy.Messages
 import com.github.jsh32.iumc.proxy.models.query.QPlayer
 import com.github.jsh32.iumc.proxy.server.IUMCApplication
 import com.velocitypowered.api.event.Subscribe
+import com.velocitypowered.api.proxy.Player
 import net.elytrium.limboapi.api.Limbo
 import net.elytrium.limboapi.api.LimboFactory
 import net.elytrium.limboapi.api.LimboSessionHandler
@@ -23,7 +24,7 @@ import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder
  *
  * @param limboFactory The factory used to create instances of Limbo.
  */
-class VerificationListener(
+class VerificationManager(
     limboFactory: LimboFactory,
     private val application: IUMCApplication,
     private val messages: Messages,
@@ -36,17 +37,24 @@ class VerificationListener(
 
     private val limbo = limboFactory.createLimbo(virtualWorld).setName("IUVerify").setGameMode(GameMode.CREATIVE)
 
+    /**
+     * Starts the registration process for the given player.
+     *
+     * @param player the player for whom the registration process should be started
+     */
+    fun startVerification(player: Player) {
+        limbo.spawnPlayer(player, LimboHandler(application, messages))
+    }
+
     @Subscribe
-    fun playerLoginListener(event: LoginLimboRegisterEvent) {
+    private fun playerLoginListener(event: LoginLimboRegisterEvent) {
         val player = QPlayer().uuid.eq(event.player.uniqueId).findOne()
 
         if (player != null) {
             event.player.sendMessage(MiniMessage.miniMessage().deserialize(messages.onJoinMessage,
                 Placeholder.component("first_name", Component.text(player.account.firstName))))
         } else {
-            event.addOnJoinCallback {
-                limbo.spawnPlayer(event.player, LimboHandler(application, messages))
-            }
+            event.addOnJoinCallback { startVerification(event.player) }
         }
     }
 }
@@ -65,16 +73,31 @@ private class LimboHandler(
 
         val link = Component.text("here")
             .color(NamedTextColor.RED)
-            .clickEvent(ClickEvent.openUrl(application.startRegistration(player.proxyPlayer) {
+            .clickEvent(ClickEvent.openUrl(application.startRegistration(player.proxyPlayer, {
                 player.disconnect()
                 player.proxyPlayer.sendMessage(
                     MiniMessage.miniMessage().deserialize(messages.onWelcomeMessage,
                         Placeholder.component("first_name", Component.text(it.account.firstName))
-                ))
-            }))
+                    ))
+            },
+            {
+                player.proxyPlayer.disconnect(
+                    Component.text("IU account")
+                        .color(NamedTextColor.RED)
+                        .append(Component.text(" is already linked! Try again with a different account")
+                        .color(NamedTextColor.GRAY)))
+            })))
 
+        // Clear chat and give link
         player.proxyPlayer.sendMessage(
-            Component.text("Please verify your IU account ").color(NamedTextColor.GRAY).append(link))
+            Component.text("\n".repeat(100) + "Please verify your IU account ")
+                .color(NamedTextColor.GRAY)
+                .append(link))
+    }
+
+    override fun onDisconnect() {
+        // Clear the chat.
+        player.proxyPlayer.sendMessage(Component.text("\n".repeat(100)))
     }
 
     override fun onMove(posX: Double, posY: Double, posZ: Double) {

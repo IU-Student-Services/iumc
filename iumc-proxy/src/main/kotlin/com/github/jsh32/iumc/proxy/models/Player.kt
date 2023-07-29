@@ -17,10 +17,14 @@ class Player(
     @Column(unique = true)
     @DbComment("Minecraft player UUID")
     val uuid: UUID,
+    @DbComment("Players cached username")
+    val username: String,
     @Column(unique = true)
-    @OneToOne
     @JoinColumn(name = "account")
-    val account: IUAccount
+    @OneToOne(cascade = [CascadeType.REMOVE])
+    val account: IUAccount,
+    @DbComment("Is the user an admin?")
+    var admin: Boolean = false
 ) : BaseModel() {
     companion object {
         fun query() = QPlayer()

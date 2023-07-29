@@ -17,12 +17,12 @@ import javax.persistence.*
 class IUAccount(
     @Column(unique = true)
     @DbComment("Subject, or the unique account identifier, should be users email")
-    val email: String,
-    val firstName: String,
-    val lastName: String,
-    val username: String,
+    var email: String,
+    var firstName: String,
+    var lastName: String,
+    var username: String,
 ) : BaseModel() {
-    @OneToOne(mappedBy = "account", cascade = [CascadeType.REMOVE])
+    @OneToOne(mappedBy = "account")
     lateinit var player: Player
 
     companion object {
