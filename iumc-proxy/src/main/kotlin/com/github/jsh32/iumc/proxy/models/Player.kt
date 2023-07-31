@@ -22,7 +22,9 @@ class Player(
     @Column(unique = true)
     @JoinColumn(name = "account")
     @OneToOne(cascade = [CascadeType.REMOVE])
-    val account: IUAccount
+    val account: IUAccount,
+    @DbComment("Is the user an admin?")
+    var admin: Boolean = false
 ) : BaseModel() {
     companion object {
         fun query() = QPlayer()

@@ -1,5 +1,6 @@
 package com.github.jsh32.iumc.proxy
 
+import com.github.jsh32.iumc.proxy.listeners.ChatListener
 import com.github.jsh32.iumc.proxy.listeners.VerificationManager
 import com.github.jsh32.iumc.proxy.models.IUAccount
 import com.github.jsh32.iumc.proxy.models.Player
@@ -59,6 +60,7 @@ class IUMCProxy @Inject constructor(
 
         server.eventManager.register(this, application)
         server.eventManager.register(this, verificationManager)
+        server.eventManager.register(this, ChatListener(server))
 
         // Register commands
         val commandManager = server.commandManager
@@ -69,6 +71,8 @@ class IUMCProxy @Inject constructor(
         }
 
         commandManager.register(unlinkCommand(verificationManager))
+        commandManager.register(setAdminCommand())
+        commandManager.register(refreshCommand(application))
 
         logger.info("IUMC initialized!")
     }

@@ -47,7 +47,7 @@ class VerificationManager(
     }
 
     @Subscribe
-    fun playerLoginListener(event: LoginLimboRegisterEvent) {
+    private fun playerLoginListener(event: LoginLimboRegisterEvent) {
         val player = QPlayer().uuid.eq(event.player.uniqueId).findOne()
 
         if (player != null) {

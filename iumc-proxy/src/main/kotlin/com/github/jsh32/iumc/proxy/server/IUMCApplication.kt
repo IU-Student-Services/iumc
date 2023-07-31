@@ -25,17 +25,45 @@ import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.server.plugins.statuspages.*
 import io.ktor.server.routing.*
 import java.net.URL
+import com.velocitypowered.api.proxy.Player as ProxyPlayer
+
+/**
+ * Represents the types of verifications that can be performed.
+ */
+private enum class VerificationType {
+    LINK,
+    REFRESH
+}
+
+/**
+ * Represents various types of verification errors that can occur during the verification process.
+ */
+private sealed class VerificationError {
+    data class AlreadyLinked(val username: String) : VerificationError()
+    data class IncorrectAccount(val iuUserInfo: UserInfo) : VerificationError()
+}
+
+/**
+ * Represents the state of a verification process.
+ *
+ * @property type The type of verification being performed.
+ * @property player The player associated with the verification.
+ * @property onCompleted Callback function to be called when the verification is completed.
+ *                      It receives the successfully verified player as a parameter.
+ * @property onError Callback function to be called when an error occurs during verification.
+ *                   It receives the error object as a parameter.
+ */
+private data class State(
+    val type: VerificationType,
+    val player: ProxyPlayer,
+    val onCompleted: (player: Player) -> Unit,
+    val onError: (error: VerificationError) -> Unit,
+)
 
 class IUMCApplication(
     private val server: ProxyServer,
     private val config: ServerConfig
 ) {
-    private data class State(
-        val player: com.velocitypowered.api.proxy.Player,
-        val onCompleted: (player: Player) -> Unit,
-        val onAlreadyLinked: (username: String) -> Unit
-    )
-
     private val sessionManager = OAuthSessionManager<State>()
 
     private val client = HttpClient {
@@ -44,12 +72,58 @@ class IUMCApplication(
         }
     }
 
-    fun startRegistration(
-        player: com.velocitypowered.api.proxy.Player,
+    /**
+     * Starts the refresh process for a given player.
+     *
+     * @param player The proxy player to start the refresh process for.
+     * @param onCompleted Callback function to be executed when the refresh process is completed.
+     *                    Receives the refreshed player as a parameter.
+     * @param onIncorrectAccount Callback function to be executed when the refresh process fails due to
+     *                           an incorrect account. Receives the user information for the incorrect account
+     *                           as a parameter.
+     * @return The created session ID for the refresh process.
+     */
+    fun startRefresh(
+        player: ProxyPlayer,
         onCompleted: (player: Player) -> Unit,
-        onAlreadyLinked: (username: String) -> Unit
+        onIncorrectAccount: (iuUserInfo: UserInfo) -> Unit,
     ): String {
-        return sessionManager.createPreStateSession(State(player, onCompleted, onAlreadyLinked), config.address)
+        return sessionManager.createPreStateSession(State(
+            VerificationType.REFRESH,
+            player,
+            onCompleted
+        ) {
+            when (it) {
+                is VerificationError.IncorrectAccount -> onIncorrectAccount(it.iuUserInfo)
+                else -> {}
+            }
+        }, config.address)
+    }
+
+    /**
+     * Starts the registration process for a player.
+     *
+     * @param player The player object to register. Must be a ProxyPlayer.
+     * @param onCompleted Callback function called when registration is completed. Receives the registered Player object as a parameter.
+     * @param onAlreadyLinked Callback function called when the player is already linked to an account. Receives the player's username as a parameter.
+     *
+     * @return A string representing the session ID for the registration process.
+     */
+    fun startRegistration(
+        player: ProxyPlayer,
+        onCompleted: (player: Player) -> Unit,
+        onAlreadyLinked: (username: String) -> Unit,
+    ): String {
+        return sessionManager.createPreStateSession(State(
+            VerificationType.LINK,
+            player,
+            onCompleted
+        ) {
+            when (it) {
+                is VerificationError.AlreadyLinked -> onAlreadyLinked(it.username)
+                else -> {}
+            }
+        }, config.address)
     }
 
     init {
@@ -110,35 +184,67 @@ class IUMCApplication(
 
                 get(URL(config.oauthConfig.callback).path) {
                     val principal: OAuthAccessTokenResponse.OAuth2? = call.principal()
-                    val state = principal?.state?.let { it1 -> sessionManager.getStateAndRemove(it1) }
+                    val state = principal?.state?.let { it1 -> sessionManager.getStateAndRemove(it1) }!!
 
                     val response = client.request(config.oauthConfig.userInfo) {
-                        bearerAuth(principal!!.accessToken)
+                        bearerAuth(principal.accessToken)
                     }
 
                     val accountInfo = response.body<UserInfo>()
 
+                    // IU account with linked email address.
                     val foundAccount = QIUAccount().email.eq(accountInfo.sub).findOne()
-                    if (foundAccount != null) {
-                        call.respondFtl(
-                            "already_linked.ftl", mapOf(
-                                "account" to foundAccount,
-                                "username" to foundAccount.player.username,
-                            )
-                        )
 
-                        state!!.onAlreadyLinked(foundAccount.player.username)
+                    if (state.type == VerificationType.REFRESH) {
+                        // Successfully re-authenticated with the correct account
+                        if (foundAccount != null && foundAccount.player.uuid == state.player.uniqueId) {
+                            // Update all details with new ones.
+                            foundAccount.firstName = accountInfo.givenName
+                            foundAccount.lastName = accountInfo.sn
+                            foundAccount.username = accountInfo.username
+                            foundAccount.email = accountInfo.sub
+                            foundAccount.save()
+
+                            call.respondFtl(
+                                "re_authenticated.ftl", mapOf(
+                                    "account" to foundAccount,
+                                    "username" to foundAccount.player.username,
+                                )
+                            )
+
+                            state.onCompleted(foundAccount.player)
+                        } else {
+                            call.respondFtl(
+                                "incorrect_account.ftl", mapOf(
+                                    "account" to accountInfo,
+                                    "username" to state.player.username,
+                                )
+                            )
+
+                            state.onError(VerificationError.IncorrectAccount(accountInfo))
+                        }
                     } else {
-                        val player = createPlayer(state!!.player, accountInfo)
-
-                        call.respondFtl(
-                            "linked.ftl", mapOf(
-                                "account" to player.account,
-                                "player" to state.player
+                        if (foundAccount != null) {
+                            call.respondFtl(
+                                "already_linked.ftl", mapOf(
+                                    "account" to foundAccount,
+                                    "username" to foundAccount.player.username,
+                                )
                             )
-                        )
 
-                        state.onCompleted(player)
+                            state.onError(VerificationError.AlreadyLinked(foundAccount.player.username))
+                        } else {
+                            val player = createPlayer(state.player, accountInfo)
+
+                            call.respondFtl(
+                                "linked.ftl", mapOf(
+                                    "account" to player.account,
+                                    "player" to state.player
+                                )
+                            )
+
+                            state.onCompleted(player)
+                        }
                     }
                 }
             }
@@ -146,14 +252,14 @@ class IUMCApplication(
     }
 
     /**
-     * Creates a player with the given UUID and user information.
+     * Creates a new player record and saves it to the database.
      *
-     * @param uuid the UUID of the player
-     * @param userInfo the IU account info associated
-     * @return the persisted player object
+     * @param player The player object representing the player in the game.
+     * @param userInfo The user information containing details about the player.
+     * @return The created player record.
      */
     @Transactional
-    private fun createPlayer(player: com.velocitypowered.api.proxy.Player, userInfo: UserInfo): Player {
+    private fun createPlayer(player: ProxyPlayer, userInfo: UserInfo): Player {
         val account = IUAccount(
             userInfo.sub,
             userInfo.givenName,

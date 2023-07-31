@@ -18,6 +18,7 @@ create table player (
   uuid                          uuid not null,
   username                      varchar(255) not null,
   account                       bigint not null,
+  admin                         boolean default false not null,
   when_modified                 timestamp not null,
   when_created                  timestamp not null,
   constraint uq_player_uuid unique (uuid),
@@ -27,6 +28,7 @@ create table player (
 comment on table player is 'Map of in-game players to their IU account';
 comment on column player.uuid is 'Minecraft player UUID';
 comment on column player.username is 'Players cached username';
+comment on column player.admin is 'Is the user an admin?';
 
 -- foreign keys and indices
 alter table player add constraint fk_player_account foreign key (account) references iuaccount (id) on delete restrict on update restrict;
